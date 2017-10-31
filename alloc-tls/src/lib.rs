@@ -147,9 +147,12 @@ impl<T> TLSSlot<T> {
     #[inline]
     pub unsafe fn with<R, F: FnOnce(&T) -> R>(&self, f: F) -> Option<R> {
         use std::intrinsics::likely;
+        // NOTE: We originally just had dyld_loaded hard-coded to return false when not compiling
+        // for a Mac dylib, but we discovered that the unlikely intrinsic is opaque to the
+        // optimizer, and so the if branch wasn't getting optimized out.
             #[cfg(all(feature = "dylib", target_os = "macos"))]
             {
-                if !likely(dyld_loaded()) {
+                if unlikely(!dyld_loaded()) {
                     return None;
                 }
             }
